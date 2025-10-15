@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  plan         String   @default("free") // "free" | "pro"
+  createdAt    DateTime @default(now())
+  agents       Agent[]
+  llmConfigs   LLMConfig[]
+}
+
+model Agent {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  description     String?
+  status          String   @default("active") // "active" | "inactive"
+
+  // LLM Config
+  llmConfigId     String?
+  llmProvider     String   @default("openai")
+  llmModel        String   @default("gpt-4")
+
+  // RAG Config
+  ragEnabled      Boolean  @default(false)
+
+  // Branding
+  brandColor      String   @default("#2563EB")
+  welcomeMessage  String   @default("Cześć! W czym mogę pomóc?")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  llmConfig       LLMConfig? @relation(fields: [llmConfigId], references: [id], onDelete: SetNull)
+  documents       Document[]
+  conversations   Conversation[]
+}
+
+model LLMConfig {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  provider        String   // "openai", "anthropic", "custom"
+  model           String   // "gpt-4", "claude-3", etc.
+  apiKeyEncrypted String   // Encrypted API key
+  baseUrl         String?  // Optional for custom providers
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agents          Agent[]
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  agentId     String
+  filename    String
+  fileUrl     String   // R2 URL: https://pub-xxx.r2.dev/agent_123/doc.pdf
+  fileType    String   // "pdf" | "txt" | "docx"
+  fileSize    Int      // bytes
+  processed   Boolean  @default(false)
+  chunksCount Int      @default(0)
+  error       String?  // jeśli processing failed
+  uploadedAt  DateTime @default(now())
+  processedAt DateTime?
+
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+}
+
+model Conversation {
+  id              String   @id @default(uuid())
+  agentId         String
+  channel         String   // "webchat" | "phone" | "facebook"
+  sessionId       String?  // For webchat
+  externalUserId  String?  // For phone (number) or Facebook (PSID)
+  status          String   @default("active") // "active" | "escalated" | "closed"
+  startedAt       DateTime @default(now())
+  lastMessageAt   DateTime @default(now())
+
+  agent           Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  messages        Message[]
+
+  @@index([agentId])
+  @@index([sessionId])
+  @@index([externalUserId])
+}
+
+model Message {
+  id              String   @id @default(uuid())
+  conversationId  String
+  sender          String   // "user" | "bot"
+  text            String
+  metadata        String?  // JSON string for source documents, etc.
+  createdAt       DateTime @default(now())
+
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}

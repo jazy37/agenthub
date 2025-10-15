@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Widget AgentHub</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      margin: 0;
+      padding: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #1f2937;
+      margin-bottom: 20px;
+    }
+
+    p {
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .info-box {
+      background: #f3f4f6;
+      border-left: 4px solid #667eea;
+      padding: 16px;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .info-box h3 {
+      margin: 0 0 8px 0;
+      color: #1f2937;
+    }
+
+    .info-box p {
+      margin: 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 AgentHub Widget Test</h1>
+
+    <p>
+      To jest przykładowa strona testowa dla widgetu chat AgentHub.
+      Widget pojawi się w prawym dolnym rogu ekranu.
+    </p>
+
+    <p>
+      Kliknij w ikonę chat w prawym dolnym rogu, aby rozpocząć rozmowę z agentem.
+    </p>
+
+    <div class="info-box">
+      <h3>📋 Instrukcja</h3>
+      <p>
+        1. Widget automatycznie ładuje się na stronie<br>
+        2. Kliknij w okrągłą ikonę chat w prawym dolnym rogu<br>
+        3. Rozpocznij rozmowę z agentem<br>
+        4. Widget zachowuje historię konwersacji w localStorage
+      </p>
+    </div>
+
+    <div class="info-box" style="margin-top: 20px; border-left-color: #f59e0b;">
+      <h3>⚠️ Uwaga</h3>
+      <p>
+        Aby widget działał, upewnij się że:<br>
+        1. Backend działa na http://localhost:5000<br>
+        2. W kodzie poniżej wstawiony jest prawidłowy agentId
+      </p>
+    </div>
+  </div>
+
+  <!-- WKLEJ TUTAJ KOD WIDGETU Z PANELU AGENTA -->
+<script>
+  (function() {
+    window.AgentHubConfig = {
+      agentId: "a1443eac-3b18-4606-9b7c-e7d18f504001",
+      serverUrl: "http://localhost:5000"
+    };
+    var script = document.createElement('script');
+    script.src = 'http://localhost:5000/widget.js';
+    script.async = true;
+    document.body.appendChild(script);
+  })();
+</script>
+</body>
+</html>
