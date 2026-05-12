@@ -1,0 +1,17 @@
+FROM node:20-slim
+
+# Instalacja openssl wymagana przez Prisma
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production --legacy-peer-deps
+
+COPY . .
+
+# Generowanie klienta Prisma
+RUN npx prisma generate
+
+# Worker nie nasłuchuje na porcie HTTP
+CMD ["node", "src/workers/documentWorker.js"]

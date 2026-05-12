@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import axios from '../utils/axios';
+import CustomSelect from '../components/CustomSelect';
+import Sidebar from '../components/Sidebar';
 
 const AgentCreate = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [llmConfigs, setLlmConfigs] = useState([]);
@@ -65,24 +69,13 @@ const AgentCreate = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Navigation */}
-      <nav className="border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <Link to="/dashboard" className="flex items-center text-gray-600 hover:text-gray-950 transition-colors">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Powrót do Dashboard
-            </Link>
-          </div>
-        </div>
-      </nav>
 
-      {/* Form Content */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
+  return (
+    <div className="min-h-screen bg-white flex">
+      <Sidebar activePath="/agents/new" />
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto flex items-center justify-center p-8 bg-gray-50">
         <div className="max-w-2xl w-full">
           <div className="mb-10">
             <h1 className="text-4xl font-display font-semibold text-gray-950 mb-3">
@@ -132,20 +125,18 @@ const AgentCreate = () => {
               <label htmlFor="llmConfigId" className="block text-sm font-medium text-gray-950 mb-2">
                 Konfiguracja LLM
               </label>
-              <select
-                id="llmConfigId"
+              <CustomSelect
                 name="llmConfigId"
                 value={formData.llmConfigId}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
-              >
-                <option value="">Domyślny LLM (AgentHub)</option>
-                {llmConfigs.map((config) => (
-                  <option key={config.id} value={config.id}>
-                    {config.name} ({config.provider} - {config.model})
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: 'Domyślny LLM (AgentHub)' },
+                  ...llmConfigs.map((config) => ({
+                    value: config.id,
+                    label: `${config.name} (${config.provider} - ${config.model})`
+                  }))
+                ]}
+              />
               <p className="text-xs text-gray-500 mt-2">
                 {llmConfigs.length === 0 ? (
                   <>Brak własnych konfiguracji. Dodaj swoją w zakładce <Link to="/llm" className="text-blue-600 hover:underline">LLM</Link></>
@@ -227,7 +218,7 @@ const AgentCreate = () => {
             </div>
           </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

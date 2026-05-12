@@ -4,6 +4,7 @@ import axios from '../utils/axios';
 import Modal from '../components/Modal';
 import KnowledgeBase from '../components/KnowledgeBase';
 import ChatInterface from '../components/ChatInterface';
+import CustomSelect from '../components/CustomSelect';
 
 const AgentDetails = () => {
   const { id } = useParams();
@@ -28,7 +29,8 @@ const AgentDetails = () => {
     llmModel: '',
     brandColor: '#2563EB',
     welcomeMessage: '',
-    status: 'active'
+    status: 'active',
+    quickReplies: [],
   });
 
   useEffect(() => {
@@ -56,7 +58,8 @@ const AgentDetails = () => {
         llmModel: response.data.llmModel,
         brandColor: response.data.brandColor,
         welcomeMessage: response.data.welcomeMessage,
-        status: response.data.status
+        status: response.data.status,
+        quickReplies: Array.isArray(response.data.quickReplies) ? response.data.quickReplies : [],
       });
     } catch (err) {
       setError('Nie znaleziono agenta');
@@ -86,7 +89,8 @@ const AgentDetails = () => {
         llmConfigId: formData.llmConfigId || null,
         brandColor: formData.brandColor,
         welcomeMessage: formData.welcomeMessage,
-        status: formData.status
+        status: formData.status,
+        quickReplies: formData.quickReplies,
       };
 
       const response = await axios.put(`/agents/${id}`, submitData);
@@ -166,11 +170,10 @@ const AgentDetails = () => {
               )}
               <div className="flex items-center gap-3">
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    agent.status === 'active'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${agent.status === 'active'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-gray-100 text-gray-600'
+                    }`}
                 >
                   {agent.status === 'active' ? '🟢 Aktywny' : '⚫ Nieaktywny'}
                 </span>
@@ -189,41 +192,37 @@ const AgentDetails = () => {
           <nav className="flex gap-8">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`py-4 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'overview'
-                  ? 'border-gray-950 text-gray-950'
-                  : 'border-transparent text-gray-600 hover:text-gray-950'
-              }`}
+              className={`py-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
+                ? 'border-gray-950 text-gray-950'
+                : 'border-transparent text-gray-600 hover:text-gray-950'
+                }`}
             >
               Przegląd
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`py-4 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'settings'
-                  ? 'border-gray-950 text-gray-950'
-                  : 'border-transparent text-gray-600 hover:text-gray-950'
-              }`}
+              className={`py-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'settings'
+                ? 'border-gray-950 text-gray-950'
+                : 'border-transparent text-gray-600 hover:text-gray-950'
+                }`}
             >
               Ustawienia
             </button>
             <button
               onClick={() => setActiveTab('knowledge')}
-              className={`py-4 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'knowledge'
-                  ? 'border-gray-950 text-gray-950'
-                  : 'border-transparent text-gray-600 hover:text-gray-950'
-              }`}
+              className={`py-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'knowledge'
+                ? 'border-gray-950 text-gray-950'
+                : 'border-transparent text-gray-600 hover:text-gray-950'
+                }`}
             >
               Baza Wiedzy
             </button>
             <button
               onClick={() => setActiveTab('test')}
-              className={`py-4 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'test'
-                  ? 'border-gray-950 text-gray-950'
-                  : 'border-transparent text-gray-600 hover:text-gray-950'
-              }`}
+              className={`py-4 border-b-2 font-medium text-sm transition-colors ${activeTab === 'test'
+                ? 'border-gray-950 text-gray-950'
+                : 'border-transparent text-gray-600 hover:text-gray-950'
+                }`}
             >
               Testuj agenta
             </button>
@@ -319,16 +318,15 @@ const AgentDetails = () => {
                 <label htmlFor="status" className="block text-sm font-medium text-gray-950 mb-2">
                   Status
                 </label>
-                <select
-                  id="status"
+                <CustomSelect
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
-                >
-                  <option value="active">Aktywny</option>
-                  <option value="inactive">Nieaktywny</option>
-                </select>
+                  options={[
+                    { value: 'active', label: 'Aktywny' },
+                    { value: 'inactive', label: 'Nieaktywny' }
+                  ]}
+                />
               </div>
 
               {/* LLM Configuration */}
@@ -336,20 +334,18 @@ const AgentDetails = () => {
                 <label htmlFor="llmConfigId" className="block text-sm font-medium text-gray-950 mb-2">
                   Konfiguracja LLM
                 </label>
-                <select
-                  id="llmConfigId"
+                <CustomSelect
                   name="llmConfigId"
                   value={formData.llmConfigId}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
-                >
-                  <option value="">Domyślny LLM (AgentHub)</option>
-                  {llmConfigs.map((config) => (
-                    <option key={config.id} value={config.id}>
-                      {config.name} ({config.provider} - {config.model})
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'Domyślny LLM (AgentHub)' },
+                    ...llmConfigs.map((config) => ({
+                      value: config.id,
+                      label: `${config.name} (${config.provider} - ${config.model})`
+                    }))
+                  ]}
+                />
                 <p className="text-xs text-gray-500 mt-2">
                   {llmConfigs.length === 0 ? (
                     <>Brak własnych konfiguracji. Dodaj swoją w zakładce <Link to="/llm" className="text-blue-600 hover:underline">LLM</Link></>
@@ -397,6 +393,76 @@ const AgentDetails = () => {
                 />
               </div>
 
+              {/* Quick Replies */}
+              <div>
+                <label className="block text-sm font-medium text-gray-950 mb-2">
+                  Szybkie odpowiedzi
+                  <span className="ml-2 text-xs font-normal text-gray-500">(max 5 przycisków)</span>
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Przyciski widoczne dla użytkownika na starcie rozmowy. Kliknięcie wysyła tekst automatycznie.
+                </p>
+
+                {/* Existing quick replies */}
+                <div className="space-y-2 mb-3">
+                  {formData.quickReplies.map((qr, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-gray-50">
+                        {qr.label}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(f => ({
+                          ...f,
+                          quickReplies: f.quickReplies.filter((_, i) => i !== idx)
+                        }))}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                        title="Usuń"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add new quick reply */}
+                {formData.quickReplies.length < 5 && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="newQuickReply"
+                      placeholder="Np. Jak złożyć zamówienie?"
+                      maxLength={80}
+                      className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const val = e.target.value.trim();
+                          if (val && formData.quickReplies.length < 5) {
+                            setFormData(f => ({ ...f, quickReplies: [...f.quickReplies, { label: val }] }));
+                            e.target.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const input = document.getElementById('newQuickReply');
+                        const val = input.value.trim();
+                        if (val && formData.quickReplies.length < 5) {
+                          setFormData(f => ({ ...f, quickReplies: [...f.quickReplies, { label: val }] }));
+                          input.value = '';
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
+                    >
+                      + Dodaj
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Error Message */}
               {error && (
                 <div className="bg-red-50 border border-error rounded-lg p-4">
@@ -424,14 +490,14 @@ const AgentDetails = () => {
               </p>
               <div className="bg-gray-50 border border-gray-300 rounded-lg p-4 font-mono text-xs overflow-x-auto">
                 <pre className="whitespace-pre-wrap break-all text-gray-800">
-{`<script>
+                  {`<script>
   (function() {
     window.AgentHubConfig = {
       agentId: "${agent.id}",
-      serverUrl: "http://localhost:5000"
+      serverUrl: "${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}"
     };
     var script = document.createElement('script');
-    script.src = 'http://localhost:5000/widget.js';
+    script.src = '${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}/widget.js';
     script.async = true;
     document.body.appendChild(script);
   })();
@@ -440,16 +506,23 @@ const AgentDetails = () => {
               </div>
               <button
                 onClick={() => {
-                  const embedCode = `<script>\n  (function() {\n    window.AgentHubConfig = {\n      agentId: "${agent.id}",\n      serverUrl: "http://localhost:5000"\n    };\n    var script = document.createElement('script');\n    script.src = 'http://localhost:5000/widget.js';\n    script.async = true;\n    document.body.appendChild(script);\n  })();\n</script>`;
+                  const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+                  const embedCode = `<script src="${backendUrl}/widget.min.js"></script>
+<script>
+  // Inicjalizacja zminifikowanego widgetu AgentHub
+  window.initAgentHub({
+    agentId: "${agent.id}",
+    serverUrl: "${backendUrl}"
+  });
+</script>`;
                   navigator.clipboard.writeText(embedCode);
                   setCodeCopied(true);
                   setTimeout(() => setCodeCopied(false), 2000);
                 }}
-                className={`mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                  codeCopied
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-950 text-white hover:bg-gray-800'
-                }`}
+                className={`mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${codeCopied
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-950 text-white hover:bg-gray-800'
+                  }`}
               >
                 {codeCopied ? (
                   <>
@@ -473,7 +546,7 @@ const AgentDetails = () => {
             <div className="mt-12 pt-8 border-t border-gray-200 max-w-2xl">
               <h3 className="text-lg font-display font-semibold text-gray-950 mb-2">Strefa niebezpieczna</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Usunięcie agenta jest nieodwracalne. Wszystkie dane zostaną trwale usunięte.
+                Agent zostanie przeniesiony do archiwum na 30 dni, po czym jego dane zostaną trwale usunięte. Przez ten czas zachowasz wgląd w historyczne konwersacje.
               </p>
               <button
                 onClick={handleDeleteClick}
@@ -501,7 +574,7 @@ const AgentDetails = () => {
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
         title="Usuń agenta"
-        message="Czy na pewno chcesz usunąć tego agenta? Ta operacja jest nieodwracalna i wszystkie dane zostaną trwale usunięte."
+        message="Czy na pewno chcesz usunąć tego agenta? Bot zniknie z panelu głównego, ale historia rozmów pozostanie w zakładce Analityka przez kolejne 30 dni."
         type="warning"
         confirmText="Usuń"
         cancelText="Anuluj"

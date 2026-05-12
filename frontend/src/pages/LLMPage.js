@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Sidebar from '../components/Sidebar';
 import axios from '../utils/axios';
+import CustomSelect from '../components/CustomSelect';
 import Modal from '../components/Modal';
 
 const LLMPage = () => {
@@ -121,68 +123,7 @@ const LLMPage = () => {
 
   return (
     <div className="min-h-screen bg-white flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-xl font-display font-semibold text-gray-950">AgentHub</h1>
-        </div>
-
-        <nav className="flex-1 p-4">
-          <ul className="space-y-1">
-            <li>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm"
-              >
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => navigate('/agents/new')}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm"
-              >
-                Nowy Agent
-              </button>
-            </li>
-            <li>
-              <button className="w-full text-left px-4 py-2.5 rounded-lg bg-gray-100 text-gray-950 font-medium text-sm">
-                LLM
-              </button>
-            </li>
-            <li>
-              <button className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm">
-                Analityka
-              </button>
-            </li>
-            <li>
-              <button className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm">
-                Ustawienia
-              </button>
-            </li>
-          </ul>
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <div className="mb-3 px-2">
-            <p className="text-xs text-gray-500 mb-1">Zalogowany jako</p>
-            <p className="text-sm font-medium text-gray-950 truncate">{user?.email}</p>
-            <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-semibold ${
-              user?.plan === 'pro'
-                ? 'bg-gray-950 text-white'
-                : 'bg-gray-200 text-gray-950'
-            }`}>
-              {user?.plan?.toUpperCase()}
-            </span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors text-sm text-left"
-          >
-            Wyloguj się
-          </button>
-        </div>
-      </aside>
+      <Sidebar activePath="/llm" />
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
@@ -239,18 +180,16 @@ const LLMPage = () => {
                   <label htmlFor="provider" className="block text-sm font-medium text-gray-950 mb-2">
                     Provider *
                   </label>
-                  <select
-                    id="provider"
+                  <CustomSelect
                     name="provider"
-                    required
                     value={formData.provider}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
-                  >
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic</option>
-                    <option value="custom">Custom</option>
-                  </select>
+                    options={[
+                      { value: 'openai', label: 'OpenAI' },
+                      { value: 'anthropic', label: 'Anthropic' },
+                      { value: 'custom', label: 'Custom' }
+                    ]}
+                  />
                 </div>
 
                 <div>

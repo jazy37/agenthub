@@ -7,10 +7,15 @@ const RegisterPage = () => {
   const { register } = useAuth();
 
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     email: '',
-    password: ''
+    company: '',
+    password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -24,12 +29,15 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
-    const result = await register(formData.email, formData.password);
+    const result = await register(formData);
 
     if (result.success) {
-      navigate('/dashboard');
+      setSuccess('Konto utworzone! Sprawdź swoją skrzynkę email, aby zweryfikować konto.');
+      setLoading(false);
+      // Don't navigate, wait for email verification
     } else {
       setError(result.error);
       setLoading(false);
@@ -70,10 +78,44 @@ const RegisterPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* First Name and Last Name */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-950 mb-2">
+                  Imię
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  required
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
+                  placeholder="Jan"
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-950 mb-2">
+                  Nazwisko
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  required
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
+                  placeholder="Kowalski"
+                />
+              </div>
+            </div>
+
             {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-950 mb-2">
-                Email
+                Adres email
               </label>
               <input
                 type="email"
@@ -83,7 +125,23 @@ const RegisterPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
-                placeholder="twoj@email.com"
+                placeholder="jan.kowalski@example.com"
+              />
+            </div>
+
+            {/* Company Input */}
+            <div>
+              <label htmlFor="company" className="block text-sm font-medium text-gray-950 mb-2">
+                Firma (jeśli dotyczy)
+              </label>
+              <input
+                type="text"
+                id="company"
+                name="company"
+                value={formData.company}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
+                placeholder="Nazwa firmy"
               />
             </div>
 
@@ -103,13 +161,37 @@ const RegisterPage = () => {
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
                 placeholder="Minimum 8 znaków"
               />
-              <p className="text-xs text-gray-500 mt-2">Użyj minimum 8 znaków</p>
             </div>
+
+            {/* Confirm Password Input */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-950 mb-2">
+                Powtórz hasło
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                required
+                minLength={8}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
+                placeholder="Powtórz hasło"
+              />
+            </div>
+
+            {/* Success Message */}
+            {success && (
+              <div className="bg-green-50 border border-green-500 rounded-lg p-3">
+                <p className="text-green-700 text-sm">{success}</p>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-error rounded-lg p-3">
-                <p className="text-error text-sm">{error}</p>
+              <div className="bg-red-50 border border-red-500 rounded-lg p-3">
+                <p className="text-red-700 text-sm">{error}</p>
               </div>
             )}
 

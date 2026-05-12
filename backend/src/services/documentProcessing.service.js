@@ -11,7 +11,9 @@ const prisma = new PrismaClient();
  * @returns {Promise<void>}
  */
 async function processDocument(documentId) {
-  console.log(`📄 Starting processing for document ${documentId}`);
+  const t0 = Date.now();
+  const ts = () => `${Date.now() - t0}ms`;
+  console.log(`📄 [0ms] Starting processing for document ${documentId}`);
 
   try {
     // Get document and agent info
@@ -37,17 +39,19 @@ async function processDocument(documentId) {
     });
 
     // Step 1: Extract text from file
-    console.log('  📖 Step 1: Extracting text...');
+    console.log(`  📖 [${ts()}] Step 1: Extracting text from R2...`);
+    const t1 = Date.now();
     const text = await extractText(document.fileUrl, document.fileType);
 
     if (!text || text.length < 50) {
       throw new Error('Extracted text is too short or empty');
     }
 
-    console.log(`  ✓ Extracted ${text.length} characters`);
+    console.log(`  ✓ [${ts()}] Extracted ${text.length} characters (took ${Date.now() - t1}ms)`);
 
     // Step 2: Chunk text
-    console.log('  ✂️ Step 2: Chunking text...');
+    console.log(`  ✂️ [${ts()}] Step 2: Chunking text...`);
+    const t2 = Date.now();
     const chunks = createChunksWithMetadata(text, {
       documentId: document.id,
       agentId: document.agent.id,
@@ -55,10 +59,11 @@ async function processDocument(documentId) {
       fileType: document.fileType
     });
 
-    console.log(`  ✓ Created ${chunks.length} chunks`);
+    console.log(`  ✓ [${ts()}] Created ${chunks.length} chunks (took ${Date.now() - t2}ms)`);
 
     // Step 3: Prepare text records for Pinecone (with integrated embeddings)
-    console.log('  💾 Step 3: Upserting text records to Pinecone...');
+    console.log(`  💾 [${ts()}] Step 3: Upserting ${chunks.length} records to Pinecone...`);
+    const t3 = Date.now();
     const textRecords = chunks.map((chunk, index) => ({
       id: `${document.id}_chunk_${index}`,
       text: chunk.text,
@@ -69,7 +74,7 @@ async function processDocument(documentId) {
     // Pinecone will automatically generate embeddings using its hosted model
     await upsertTextRecords(textRecords, document.agent.id);
 
-    console.log(`  ✓ Upserted ${textRecords.length} text records to Pinecone (integrated embeddings)`);
+    console.log(`  ✓ [${ts()}] Pinecone upsert done (took ${Date.now() - t3}ms)`);
 
     // Step 4: Update document in database
     await prisma.document.update({
@@ -82,7 +87,13 @@ async function processDocument(documentId) {
       }
     });
 
-    console.log(`✅ Document ${documentId} processed successfully!`);
+    // Step 5: Ensure RAG is enabled for this agent
+    await prisma.agent.update({
+      where: { id: document.agent.id },
+      data: { ragEnabled: true }
+    });
+
+    console.log(`✅ Document ${documentId} processed successfully! Total time: ${ts()}`);
   } catch (error) {
     console.error(`❌ Error processing document ${documentId}:`, error);
 

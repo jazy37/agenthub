@@ -1,8 +1,10 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:5000/api'
+  baseURL: `${backendUrl}/api`
 });
 
 // Request interceptor to add token to headers

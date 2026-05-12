@@ -12,7 +12,9 @@ const PLAN_LIMITS = {
 const getAgents = async (req, res) => {
   try {
     const agents = await prisma.agent.findMany({
-      where: { userId: req.userId },
+      where: {
+        userId: req.userId
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
@@ -40,8 +42,10 @@ const getAgent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const agent = await prisma.agent.findUnique({
-      where: { id },
+    const agent = await prisma.agent.findFirst({
+      where: {
+        id
+      },
       include: {
         _count: {
           select: {
@@ -75,7 +79,7 @@ const getAgent = async (req, res) => {
 // Create new agent
 const createAgent = async (req, res) => {
   try {
-    const { name, description, llmConfigId, llmModel, brandColor, welcomeMessage } = req.body;
+    const { name, description, llmConfigId, llmModel, brandColor, welcomeMessage, quickReplies } = req.body;
 
     // Validation
     if (!name || name.trim().length === 0) {
@@ -124,7 +128,8 @@ const createAgent = async (req, res) => {
         llmModel: selectedLlmConfig ? selectedLlmConfig.model : (process.env.DEFAULT_LLM_MODEL || 'gpt-4o-mini'),
         llmProvider: selectedLlmConfig ? selectedLlmConfig.provider : (process.env.DEFAULT_LLM_PROVIDER || 'openai'),
         brandColor: brandColor || '#2563EB',
-        welcomeMessage: welcomeMessage || 'Cześć! W czym mogę pomóc?'
+        welcomeMessage: welcomeMessage || 'Cześć! W czym mogę pomóc?',
+        quickReplies: quickReplies || [],
       }
     });
 
@@ -139,11 +144,13 @@ const createAgent = async (req, res) => {
 const updateAgent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, llmConfigId, llmModel, brandColor, welcomeMessage, status } = req.body;
+    const { name, description, llmConfigId, llmModel, brandColor, welcomeMessage, status, quickReplies } = req.body;
 
     // Check if agent exists and belongs to user
-    const existingAgent = await prisma.agent.findUnique({
-      where: { id }
+    const existingAgent = await prisma.agent.findFirst({
+      where: {
+        id
+      }
     });
 
     if (!existingAgent) {
@@ -177,7 +184,8 @@ const updateAgent = async (req, res) => {
       ...(description !== undefined && { description: description?.trim() || null }),
       ...(brandColor && { brandColor }),
       ...(welcomeMessage && { welcomeMessage }),
-      ...(status && { status })
+      ...(status && { status }),
+      ...(quickReplies !== undefined && { quickReplies: Array.isArray(quickReplies) ? quickReplies.slice(0, 5) : [] }),
     };
 
     // Handle LLM config changes
@@ -194,6 +202,18 @@ const updateAgent = async (req, res) => {
         updateData.llmProvider = selectedLlmConfig.provider;
       }
     }
+
+    // Count documents to ensure ragEnabled flag is correct
+    const docCount = await prisma.document.count({
+      where: {
+        agentId: id,
+        processed: true,
+        error: null
+      }
+    });
+
+    // Add ragEnabled to updateData
+    updateData.ragEnabled = (docCount > 0);
 
     // Update agent
     const agent = await prisma.agent.update({
@@ -226,9 +246,13 @@ const deleteAgent = async (req, res) => {
       return res.status(403).json({ error: 'Brak dostępu do tego agenta' });
     }
 
-    // Delete agent
-    await prisma.agent.delete({
-      where: { id }
+    // Soft delete agent (preserve for 30 days)
+    await prisma.agent.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        status: 'inactive'
+      }
     });
 
     res.json({ message: 'Agent został usunięty' });
@@ -238,10 +262,43 @@ const deleteAgent = async (req, res) => {
   }
 };
 
+// Restore agent
+const restoreAgent = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existingAgent = await prisma.agent.findUnique({
+      where: { id }
+    });
+
+    if (!existingAgent) {
+      return res.status(404).json({ error: 'Agent nie znaleziony' });
+    }
+
+    if (existingAgent.userId !== req.userId) {
+      return res.status(403).json({ error: 'Brak dostępu do tego agenta' });
+    }
+
+    await prisma.agent.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+        status: 'active'
+      }
+    });
+
+    res.json({ message: 'Agent został przywrócony' });
+  } catch (error) {
+    console.error('Restore agent error:', error);
+    res.status(500).json({ error: 'Błąd podczas przywracania agenta' });
+  }
+};
+
 module.exports = {
   getAgents,
   getAgent,
   createAgent,
   updateAgent,
-  deleteAgent
+  deleteAgent,
+  restoreAgent
 };

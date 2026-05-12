@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from '../utils/axios';
 import AgentCard from '../components/AgentCard';
+import Sidebar from '../components/Sidebar';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,102 +26,82 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleRestore = async (agentId) => {
+    try {
+      await axios.post(`/agents/${agentId}/restore`);
+      // Refresh the agents list after successful restore
+      fetchAgents();
+    } catch (error) {
+      console.error('Error restoring agent:', error);
+      alert(error.response?.data?.error || 'Błąd podczas przywracania agenta');
+    }
   };
+
 
   const agentLimit = user?.plan === 'pro' ? 5 : 1;
   const canCreateMore = agents.length < agentLimit;
 
   return (
     <div className="min-h-screen bg-white flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* Logo */}
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-xl font-display font-semibold text-gray-950">AgentHub</h1>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <ul className="space-y-1">
-            <li>
-              <button className="w-full text-left px-4 py-2.5 rounded-lg bg-gray-100 text-gray-950 font-medium text-sm">
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => navigate('/agents/new')}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm"
-              >
-                Nowy Agent
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => navigate('/llm')}
-                className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm"
-              >
-                LLM
-              </button>
-            </li>
-            <li>
-              <button className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm">
-                Analityka
-              </button>
-            </li>
-            <li>
-              <button className="w-full text-left px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition-colors text-sm">
-                Ustawienia
-              </button>
-            </li>
-          </ul>
-        </nav>
-
-        {/* User Info & Logout */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="mb-3 px-2">
-            <p className="text-xs text-gray-500 mb-1">Zalogowany jako</p>
-            <p className="text-sm font-medium text-gray-950 truncate">{user?.email}</p>
-            <span className={`inline-block mt-2 px-2 py-1 rounded text-xs font-semibold ${
-              user?.plan === 'pro'
-                ? 'bg-gray-950 text-white'
-                : 'bg-gray-200 text-gray-950'
-            }`}>
-              {user?.plan?.toUpperCase()}
-            </span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-100 font-medium transition-colors text-sm text-left"
-          >
-            Wyloguj się
-          </button>
-        </div>
-      </aside>
+      <Sidebar activePath="/dashboard" />
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {/* Header */}
         <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
-          <div className="px-8 py-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-display font-semibold text-gray-950">
-                Twoi Agenci
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {agents.length} / {agentLimit} {agentLimit === 1 ? 'agent' : 'agentów'}
-              </p>
+          <div className="px-8 py-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-2xl font-display font-semibold text-gray-950">
+                  Twoi Agenci
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {agents.length} / {agentLimit} {agentLimit === 1 ? 'agent' : 'agentów'}
+                </p>
+              </div>
+              {canCreateMore && (
+                <button
+                  onClick={() => navigate('/agents/new')}
+                  className="bg-gray-950 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200"
+                >
+                  + Nowy Agent
+                </button>
+              )}
             </div>
-            {canCreateMore && (
-              <button
-                onClick={() => navigate('/agents/new')}
-                className="bg-gray-950 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200"
-              >
-                + Nowy Agent
-              </button>
+
+            {/* Message Usage Stats */}
+            {user?.messageUsage && user.messageUsage.plan === 'free' && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-950">
+                      Limit wiadomości (plan FREE)
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Wykorzystano: {user.messageUsage.used} / {user.messageUsage.limit} wiadomości
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-gray-950">
+                      {user.messageUsage.remaining}
+                    </p>
+                    <p className="text-xs text-gray-600">pozostało</p>
+                  </div>
+                </div>
+                {user.messageUsage.remaining === 0 ? (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-red-600 font-medium">
+                      ⚠️ Osiągnąłeś miesięczny limit wiadomości na planie FREE. Poczekaj do następnego miesiąca lub przejdź na plan PRO. Twój widget nie będzie działać, dopóki limit nie zostanie zresetowany.
+                    </p>
+                  </div>
+                ) : user.messageUsage.remaining <= 10 && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-orange-600 font-medium">
+                      ⚠️ Zbliżasz się do limitu! Przejdź na plan PRO, aby uzyskać nielimitowane wiadomości.
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </header>
@@ -159,7 +140,11 @@ const Dashboard = () => {
             <>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {agents.map((agent) => (
-                  <AgentCard key={agent.id} agent={agent} />
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    onRestore={handleRestore}
+                  />
                 ))}
               </div>
 

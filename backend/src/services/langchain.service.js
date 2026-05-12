@@ -9,6 +9,7 @@ const { PromptTemplate } = require('@langchain/core/prompts');
 const { HumanMessage, AIMessage } = require('@langchain/core/messages');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { decrypt } = require('./encryption.service');
+const { processMessageGraph } = require('./langgraph.service');
 
 // Cache ONLY for simple conversation chains
 const conversationChainCache = new Map();
@@ -201,7 +202,7 @@ Assistant:`
     memory: {
       history: [],
       async loadMemoryVariables() {
-        return { 
+        return {
           history: this.history.slice(-6).join('\n') // Ostatnie 3 wymiany
         };
       },
@@ -228,7 +229,7 @@ async function getCachedChain(agent) {
 
   // Dla conversation - użyj cache
   const cacheKey = agent.id;
-  
+
   if (conversationChainCache.has(cacheKey)) {
     const cached = conversationChainCache.get(cacheKey);
     if (Date.now() - cached.timestamp < CACHE_TTL) {
@@ -240,7 +241,7 @@ async function getCachedChain(agent) {
 
   console.log(`🔨 Creating new conversation chain`);
   const chain = await createConversationChain(agent);
-  
+
   conversationChainCache.set(cacheKey, {
     chain,
     timestamp: Date.now(),
@@ -250,61 +251,11 @@ async function getCachedChain(agent) {
 }
 
 /**
- * Process message - POPRAWIONA WERSJA
+ * Process message – delegated to LangGraph state machine.
+ * Returns backward-compatible shape + new `escalate` flag.
  */
 async function processMessage(agent, conversationId, message, history = []) {
-  const maxRetries = 2;
-  
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const chain = await getCachedChain(agent);
-
-      if (agent.ragEnabled && agent.documents && agent.documents.length > 0) {
-        
-        const result = await chain.invoke({
-          input: message
-          // Nie przekazuj chat_history - powoduje problemy
-        });
-
-        
-        return {
-          reply: result.answer,
-          sourceDocuments: Array.isArray(result.context) ? result.context : []
-        };
-      } else {
-        console.log(`💬 Calling conversation chain`);
-        const result = await chain.call({ 
-          input: message 
-        });
-
-        console.log(`✅ Conversation response received`);
-        
-        return {
-          reply: result.response,
-          sourceDocuments: [],
-        };
-      }
-    } catch (error) {
-      console.error(`❌ Error (attempt ${attempt + 1}/${maxRetries}):`, error.message);
-      
-      // Jeśli to błąd związany z dokumentami, spróbuj bez RAG
-      if (error.message.includes('documents.map') || error.message.includes('documents') && attempt === 0) {
-        const tempAgent = { ...agent, ragEnabled: false };
-        const chain = await getCachedChain(tempAgent);
-        const result = await chain.call({ input: message });
-        return {
-          reply: result.response,
-          sourceDocuments: [],
-        };
-      }
-
-      if (attempt === maxRetries - 1) {
-        throw new Error('Przepraszam, wystąpił problem. Spróbuj ponownie.');
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-    }
-  }
+  return await processMessageGraph(agent, message, history, getLLM, getRetriever);
 }
 
 /**
@@ -312,12 +263,12 @@ async function processMessage(agent, conversationId, message, history = []) {
  */
 async function processMessageSimple(agent, message) {
   const llm = getLLM(agent);
-  
+
   try {
     const response = await llm.invoke([
       new HumanMessage(`Odpowiedz naturalnie na wiadomość użytkownika: "${message}"`)
     ]);
-    
+
     return {
       reply: response.content,
       sourceDocuments: []

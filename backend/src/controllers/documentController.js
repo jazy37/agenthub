@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const { uploadFile, deleteFile, getSignedFileUrl } = require('../services/r2.service');
 const { processDocument, deleteDocumentVectors } = require('../services/documentProcessing.service');
+const { documentQueue } = require('../queues/documentQueue');
 const multer = require('multer');
 const path = require('path');
 
@@ -14,10 +15,16 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.txt', '.docx', '.doc'];
+    const allowedExts = ['.pdf', '.txt', '.docx', '.doc'];
+    const allowedMimes = [
+      'application/pdf',
+      'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+    ];
     const ext = path.extname(file.originalname).toLowerCase();
 
-    if (allowedTypes.includes(ext)) {
+    if (allowedExts.includes(ext) && allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Nieprawidłowy typ pliku. Dozwolone: PDF, TXT, DOCX'));
@@ -138,6 +145,17 @@ const uploadDocument = async (req, res) => {
         return res.status(403).json({ error: 'Brak dostępu' });
       }
 
+      // Check user plan to enforce Free plan limits
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId }
+      });
+
+      if (user.plan === 'free') {
+        return res.status(403).json({
+          error: 'Plan FREE nie pozwala na dodawanie bazy wiedzy (RAG). Ulepsz do planu PRO, aby wgrać ten dokument.'
+        });
+      }
+
       try {
         // Upload to R2
         const fileUrl = await uploadFile(
@@ -161,10 +179,9 @@ const uploadDocument = async (req, res) => {
           }
         });
 
-        // Start processing in background (don't await - process async)
-        processDocument(document.id).catch(err => {
-          console.error(`Background processing failed for document ${document.id}:`, err);
-        });
+        // Disptach job using BullMQ queue instead of raw promise
+        await documentQueue.add('process', { documentId: document.id });
+        console.log(`📥 Added document ${document.id} to BullMQ queue`);
 
         res.status(201).json(document);
       } catch (uploadError) {
@@ -225,6 +242,20 @@ const deleteDocument = async (req, res) => {
     await prisma.document.delete({
       where: { id }
     });
+
+    // Check if agent has any documents left
+    const remainingDocs = await prisma.document.count({
+      where: { agentId: document.agent.id }
+    });
+
+    // If no documents left, disable RAG
+    if (remainingDocs === 0) {
+      await prisma.agent.update({
+        where: { id: document.agent.id },
+        data: { ragEnabled: false }
+      });
+      console.log(`📉 RAG disabled for agent ${document.agent.id} (no documents left)`);
+    }
 
     res.json({ message: 'Dokument usunięty' });
   } catch (error) {

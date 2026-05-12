@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pl">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -52,6 +53,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>🤖 AgentHub Widget Test</h1>
@@ -85,18 +87,7 @@
     </div>
   </div>
 
-  <!-- WKLEJ TUTAJ KOD WIDGETU Z PANELU AGENTA -->
-<script>
-  (function() {
-    window.AgentHubConfig = {
-      agentId: "a1443eac-3b18-4606-9b7c-e7d18f504001",
-      serverUrl: "http://localhost:5000"
-    };
-    var script = document.createElement('script');
-    script.src = 'http://localhost:5000/widget.js';
-    script.async = true;
-    document.body.appendChild(script);
-  })();
-</script>
+
 </body>
+
 </html>

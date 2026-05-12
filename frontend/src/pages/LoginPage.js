@@ -102,6 +102,11 @@ const LoginPage = () => {
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:border-gray-950 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-opacity-10 transition-all text-gray-950"
                 placeholder="Twoje hasło"
               />
+              <div className="flex justify-end mt-2">
+                <Link to="/forgot-password" className="text-sm text-gray-600 hover:text-gray-950 transition-colors">
+                  Zapomniałeś hasła? - Zresetuj je teraz
+                </Link>
+              </div>
             </div>
 
             {/* Error Message */}

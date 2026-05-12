@@ -4,7 +4,8 @@ const {
   getAgent,
   createAgent,
   updateAgent,
-  deleteAgent
+  deleteAgent,
+  restoreAgent
 } = require('../controllers/agentController');
 const authMiddleware = require('../middleware/authMiddleware');
 
@@ -18,5 +19,6 @@ router.get('/:id', getAgent);
 router.post('/', createAgent);
 router.put('/:id', updateAgent);
 router.delete('/:id', deleteAgent);
+router.post('/:id/restore', restoreAgent);
 
 module.exports = router;

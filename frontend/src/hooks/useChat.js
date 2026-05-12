@@ -69,6 +69,11 @@ function useChat(agentId) {
       setMessages(data.history || []);
     });
 
+    // Conversation created on first message
+    socket.on('conversation_started', (data) => {
+      setConversationId(data.conversationId);
+    });
+
     // Bot typing indicator
     socket.on('bot_typing', (data) => {
       setIsTyping(data.typing);
@@ -96,7 +101,7 @@ function useChat(agentId) {
   // Send message function
   const sendMessage = useCallback(
     (text) => {
-      if (!socketRef.current || !conversationId || !text.trim()) {
+      if (!socketRef.current || !text.trim()) {
         return;
       }
 
@@ -111,9 +116,13 @@ function useChat(agentId) {
       setMessages((prev) => [...prev, userMessage]);
       setError(null);
 
-      // Emit to server
+      // Emit to server — conversationId may be null on first message,
+      // backend will create the conversation and return the id
       socketRef.current.emit('send_message', {
         conversationId,
+        agentId,
+        sessionId: sessionIdRef.current,
+        channel: 'webchat-admin-panel',
         message: text.trim(),
       });
     },

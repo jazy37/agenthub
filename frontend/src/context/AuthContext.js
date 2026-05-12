@@ -44,23 +44,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password) => {
+  const register = async (formData) => {
     try {
-      const response = await axios.post('/auth/register', { email, password });
-      const { token: newToken, user: newUser } = response.data;
+      const response = await axios.post('/auth/register', formData);
 
-      // Store token in cookie (expires in 7 days, secure in production)
-      Cookies.set('auth_token', newToken, {
-        expires: 7,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict'
-      });
-
-      setToken(newToken);
-      setUser(newUser);
-      setIsAuthenticated(true);
-
-      return { success: true };
+      // Registration successful, but user needs to verify email
+      // Don't log them in yet
+      return {
+        success: true,
+        message: response.data.message
+      };
     } catch (error) {
       return {
         success: false,
@@ -94,6 +87,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email) => {
+    try {
+      const response = await axios.post('/auth/forgot-password', { email });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Błąd podczas wysyłania linku resetującego'
+      };
+    }
+  };
+
+  const resetPassword = async (token, newPassword) => {
+    try {
+      const response = await axios.post('/auth/reset-password', { token, newPassword });
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Błąd podczas zmiany hasła'
+      };
+    }
+  };
+
   const logout = () => {
     Cookies.remove('auth_token');
     setToken(null);
@@ -108,6 +125,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     register,
     login,
+    forgotPassword,
+    resetPassword,
     logout,
     checkAuth
   };

@@ -1,11 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const AgentCard = ({ agent }) => {
+const AgentCard = ({ agent, onRestore }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="border border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all duration-200 group">
+    <div className={`border rounded-xl p-6 transition-all duration-200 group ${agent.deletedAt
+        ? 'border-red-200 bg-red-50/30'
+        : 'border-gray-200 hover:border-gray-300'
+      }`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -23,13 +26,14 @@ const AgentCard = ({ agent }) => {
           )}
         </div>
         <span
-          className={`ml-4 px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ${
-            agent.status === 'active'
-              ? 'bg-green-100 text-green-700'
-              : 'bg-gray-100 text-gray-600'
-          }`}
+          className={`ml-4 px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ${agent.deletedAt
+              ? 'bg-red-100 text-red-700'
+              : agent.status === 'active'
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-600'
+            }`}
         >
-          {agent.status === 'active' ? 'Aktywny' : 'Nieaktywny'}
+          {agent.deletedAt ? 'Usunięty' : agent.status === 'active' ? 'Aktywny' : 'Nieaktywny'}
         </span>
       </div>
 
@@ -56,12 +60,24 @@ const AgentCard = ({ agent }) => {
       </div>
 
       {/* Action button */}
-      <button
-        onClick={() => navigate(`/agents/${agent.id}`)}
-        className="w-full bg-gray-950 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-all duration-200"
-      >
-        Zarządzaj
-      </button>
+      {agent.deletedAt ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onRestore) onRestore(agent.id);
+          }}
+          className="w-full bg-red-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-200"
+        >
+          Przywróć agenta
+        </button>
+      ) : (
+        <button
+          onClick={() => navigate(`/agents/${agent.id}`)}
+          className="w-full bg-gray-950 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-all duration-200"
+        >
+          Zarządzaj
+        </button>
+      )}
     </div>
   );
 };

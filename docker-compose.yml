@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: agenthub-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: agenthub
+      POSTGRES_PASSWORD: agenthub_password
+      POSTGRES_DB: agenthub
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agenthub -d agenthub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: agenthub-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agenthub-api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://agenthub:agenthub_password@postgres:5432/agenthub?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+
+  backend-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    container_name: agenthub-worker
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://agenthub:agenthub_password@postgres:5432/agenthub?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_BACKEND_URL=http://localhost:5000
+    container_name: agenthub-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend-api
+
+  prisma-studio:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agenthub-prisma-studio
+    restart: always
+    ports:
+      - "5555:5555"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://agenthub:agenthub_password@postgres:5432/agenthub?schema=public
+    command: ["npx", "prisma", "studio", "--hostname", "0.0.0.0"]
+
+volumes:
+  postgres_data:
+  redis_data:
