@@ -19,18 +19,6 @@ Platforma SaaS umożliwiająca firmom tworzenie inteligentnych chatbotów obsłu
 
 ## 📦 Instalacja i Uruchomienie
 
-### 🚀 Szybki start (Automatyczny)
-
-**macOS/Linux:**
-```bash
-./start.sh
-```
-
-**Windows:**
-```bash
-start.bat
-```
-
 Skrypt automatycznie:
 - Zainstaluje wszystkie zależności (jeśli potrzebne)
 - Zainicjalizuje bazę danych
